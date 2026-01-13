@@ -29,6 +29,7 @@ class OptionInputs:
         time_to_expiry: Time until option expires, in years (T)
         volatility: Annualized volatility of the stock (sigma/σ)
         risk_free_rate: Annualized risk-free interest rate (r)
+        dividend_yield: Continuous dividend yield (q) - defaults to 0.0 for non-dividend stocks
     """
     # These are called "type annotations" - they tell Python (and us) what type each variable should be
     # float means a decimal number like 100.5
@@ -37,6 +38,8 @@ class OptionInputs:
     time_to_expiry: float  # in years (e.g., 0.5 = 6 months, 1.0 = 1 year)
     volatility: float  # as a decimal (e.g., 0.25 = 25% volatility)
     risk_free_rate: float  # as a decimal (e.g., 0.05 = 5% interest rate)
+    dividend_yield: float = 0.0 # as a decimal (e.g., 0.02 = 2% dividend yield)
+                                  # = 0.0 means this parameter is optional and defaults to 0
     
     def __post_init__(self):
         """
@@ -53,6 +56,8 @@ class OptionInputs:
             raise ValueError("Time to expiry must be positive")
         if self.volatility <= 0:
             raise ValueError("Volatility must be positive")
+        if self.dividend_yield < 0: 
+            raise ValueError("Dividend yield must not be negative")
         # Note: risk_free_rate CAN be negative in some rare economic scenarios, so we don't check it
 
 
@@ -89,8 +94,8 @@ class BlackScholesCalculator:
         Calculate call and put option prices using Black-Scholes formula
         
         The Black-Scholes formula:
-        Call Price = S*N(d1) - K*e^(-rT)*N(d2)
-        Put Price = K*e^(-rT)*N(-d2) - S*N(-d1)
+        Call Price = S*e^(-qT)*N(d1) - K*e^(-rT)*N(d2)
+        Put Price = K*e^(-rT)*N(-d2) - S*e^(-qT)*N(-d1)
         
         Where:
         - S = current stock price
@@ -98,6 +103,7 @@ class BlackScholesCalculator:
         - T = time to expiration
         - r = risk-free rate
         - σ (sigma) = volatility
+        - q = continuous dividend yield
         - N(x) = cumulative distribution function of standard normal distribution
         - d1 = [ln(S/K) + (r + σ²/2)T] / (σ√T)
         - d2 = d1 - σ√T
@@ -115,12 +121,13 @@ class BlackScholesCalculator:
         T = inputs.time_to_expiry  # Time to expiration (in years)
         sigma = inputs.volatility  # Volatility (sigma in Greek notation)
         r = inputs.risk_free_rate  # Risk-free interest rate
+        q = inputs.dividend_yield
         
         # Calculate d1 - the first key component of the Black-Scholes formula
         # np.log() is the natural logarithm (ln)
         # np.sqrt() is the square root
         # The formula measures how far "in the money" the option is, adjusted for time and volatility
-        d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
         
         # Calculate d2 - the second key component
         # d2 is just d1 shifted by σ√T
@@ -133,12 +140,12 @@ class BlackScholesCalculator:
         # Call option price formula
         # S * norm.cdf(d1) = expected value of stock if option is exercised
         # K * np.exp(-r * T) * norm.cdf(d2) = present value of strike price, weighted by probability
-        call_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        call_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
         
         # Put option price formula
         # This is derived from put-call parity but can also be calculated directly
         # norm.cdf(-d2) is the same as 1 - norm.cdf(d2), used for the opposite tail of distribution
-        put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+        put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
         
         # Return both prices in an OptionPrices object
         # round() to 4 decimal places for cleaner output (pennies + 2 more digits)
