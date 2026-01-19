@@ -1,15 +1,14 @@
 """
-Black-Scholes Options Pricing Model
+Black Scholes Options Pricing Model
 
-This module implements the Black-Scholes formula for pricing European call and put options.
+This file implements the Black-Scholes formula for pricing European call and put options.
 The Black-Scholes model is the foundational framework for options pricing in finance.
 """
 
-# Import statements - bringing in code from other libraries we need
-import numpy as np  # For mathematical operations like logarithms and exponentials
-from scipy.stats import norm  # For the cumulative normal distribution function N(d)
-from typing import Tuple  # For type hints (helps with code clarity and IDE autocomplete)
-from dataclasses import dataclass  # A decorator that auto-generates boilerplate code for classes
+import numpy as np  
+from scipy.stats import norm 
+from typing import Tuple
+from dataclasses import dataclass
 
 
 # The @dataclass decorator automatically creates __init__, __repr__, and other methods
@@ -19,27 +18,23 @@ class OptionInputs:
     """
     Container for option pricing inputs
     
-    This is a data class that holds all the parameters needed to price an option.
-    Using a dataclass makes our code cleaner - instead of passing 5 separate parameters,
-    we pass one object that contains all of them.
-    
-    Attributes:
+    This is a class that holds all the input parameters needed to price an option.
+   
+
         stock_price: Current price of the underlying stock (S)
         strike_price: Strike/exercise price of the option (K)
         time_to_expiry: Time until option expires, in years (T)
-        volatility: Annualized volatility of the stock (sigma/σ)
+        volatility: Annualized volatility of the stock (sigma)
         risk_free_rate: Annualized risk-free interest rate (r)
         dividend_yield: Continuous dividend yield (q) - defaults to 0.0 for non-dividend stocks
     """
-    # These are called "type annotations" - they tell Python (and us) what type each variable should be
-    # float means a decimal number like 100.5
     stock_price: float
     strike_price: float
-    time_to_expiry: float  # in years (e.g., 0.5 = 6 months, 1.0 = 1 year)
-    volatility: float  # as a decimal (e.g., 0.25 = 25% volatility)
-    risk_free_rate: float  # as a decimal (e.g., 0.05 = 5% interest rate)
-    dividend_yield: float = 0.0 # as a decimal (e.g., 0.02 = 2% dividend yield)
-                                  # = 0.0 means this parameter is optional and defaults to 0
+    time_to_expiry: float  # unit: years
+    volatility: float  # decimal value
+    risk_free_rate: float  # decimal value
+    dividend_yield: float = 0.0 # decimal value
+                                  # dividend yield parameter is optional and defaults to 0
     
     def __post_init__(self):
         """
@@ -58,69 +53,61 @@ class OptionInputs:
             raise ValueError("Volatility must be positive")
         if self.dividend_yield < 0: 
             raise ValueError("Dividend yield must not be negative")
-        # Note: risk_free_rate CAN be negative in some rare economic scenarios, so we don't check it
+        # nb: rf can be negative in some occasion
 
 
 @dataclass
 class OptionPrices:
     """
-    Container for calculated option prices
+    Class to store resulting ootpion prices
     
     This holds the output of our Black-Scholes calculation.
     Again, using a dataclass makes it easy to return multiple related values.
     
-    Attributes:
         call_price: The fair value of a call option
         put_price: The fair value of a put option
     """
-    call_price: float
+    call_price:  float
     put_price: float
 
 
 class BlackScholesCalculator:
     """
-    Black-Scholes option pricing calculator
+     option pricing calculator
     
-    This is our main calculator class. It contains the methods that implement
+    This is the main calculator class. It contains the methods that implement
     the Black-Scholes formula for pricing options.
-    
-    We use @staticmethod because these calculations don't need any instance-specific data.
-    They just take inputs and return outputs - pure functions.
     """
     
-    @staticmethod  # This means the method doesn't need 'self' - it doesn't access instance variables
+    @staticmethod  # This means the method doesn't need 'self'
     def calculate(inputs: OptionInputs) -> OptionPrices:
         """
         Calculate call and put option prices using Black-Scholes formula
         
         The Black-Scholes formula:
         Call Price = S*e^(-qT)*N(d1) - K*e^(-rT)*N(d2)
-        Put Price = K*e^(-rT)*N(-d2) - S*e^(-qT)*N(-d1)
+        Put price = K*e^(-rT)*N(-d2) - S*e^(-qT)*N(-d1)
         
         Where:
         - S = current stock price
         - K = strike price
         - T = time to expiration
         - r = risk-free rate
-        - σ (sigma) = volatility
+        - sigma = volatility
         - q = continuous dividend yield
         - N(x) = cumulative distribution function of standard normal distribution
-        - d1 = [ln(S/K) + (r + σ²/2)T] / (σ√T)
-        - d2 = d1 - σ√T
+        - d1 = [ln(S/K) + (r + sigma^2/2)T] / (sigma*sqrt(T))
+        - d2 = d1 - sigma* sqrt(T)
         
-        Args:
             inputs: OptionInputs object containing all required parameters
             
-        Returns:
             OptionPrices object with call_price and put_price
         """
-        # Extract values from the inputs object to make the formula more readable
-        # These variable names match standard finance notation
-        S = inputs.stock_price  # Current stock price
-        K = inputs.strike_price  # Strike price
-        T = inputs.time_to_expiry  # Time to expiration (in years)
-        sigma = inputs.volatility  # Volatility (sigma in Greek notation)
-        r = inputs.risk_free_rate  # Risk-free interest rate
+        S = inputs.stock_price  # curent stock price
+        K = inputs.strike_price  # strike price
+        T = inputs.time_to_expiry  # time to expiration (years)
+        sigma = inputs.volatility  # vol
+        r = inputs.risk_free_rate  # rf
         q = inputs.dividend_yield
         
         # Calculate d1 - the first key component of the Black-Scholes formula
@@ -130,20 +117,15 @@ class BlackScholesCalculator:
         d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
         
         # Calculate d2 - the second key component
-        # d2 is just d1 shifted by σ√T
+        # d2 is just d1 shifted by sigma*sqrt(T)
         d2 = d1 - sigma * np.sqrt(T)
         
-        # norm.cdf() is the cumulative distribution function (CDF) of the standard normal distribution
-        # N(d1) represents the probability that the option will be exercised
-        # np.exp() is the exponential function (e^x)
-        
-        # Call option price formula
-        # S * norm.cdf(d1) = expected value of stock if option is exercised
-        # K * np.exp(-r * T) * norm.cdf(d2) = present value of strike price, weighted by probability
+        # S*norm.cdf(d1) = expected value of stock if option is exercised
+        # K*np.exp(-r * T) * norm.cdf(d2) = present value of strike price, weighted by probability
         call_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
         
         # Put option price formula
-        # This is derived from put-call parity but can also be calculated directly
+        # derived from put-call parity but can also be calculated directly
         # norm.cdf(-d2) is the same as 1 - norm.cdf(d2), used for the opposite tail of distribution
         put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
         
