@@ -35,15 +35,10 @@ def test_basic_calculation():
     # Call our calculator to get the option prices
     result = BlackScholesCalculator.calculate(inputs)
     
-    # Print the results so we can see them when we run the test
     print(f"Call Price: ${result.call_price}")
     print(f"Put Price: ${result.put_price}")
     
-    # Assert statements check if conditions are true
-    # If they're false, the program stops and shows an error
-    # This is how we verify our calculator is working correctly
-    
-    # Sanity check: both prices should be positive numbers
+    #  both prices should be positive numbers
     assert result.call_price > 0, "Call price should be positive"
     assert result.put_price > 0, "Put price should be positive"
     
@@ -56,11 +51,8 @@ def test_with_dividends():
     """
     Test Black-Scholes calculation WITH dividends
     
-    When a stock pays dividends, the call price should be LOWER and
-    the put price should be HIGHER compared to a non-dividend stock.
-    
-    Why? Dividends reduce the stock's expected growth rate, making calls
-    less valuable and puts more valuable.
+    When a stock pays dividends, the call price should be lower and
+    the put price should be higher compared to a non-dividend stock.
     """
     
     print("\n=== Test 2: With 2% Dividend Yield ===")
@@ -107,11 +99,6 @@ def test_with_dividends():
 # (as opposed to being imported by another file)
 if __name__ == "__main__":
     """
-    The __name__ variable is automatically set by Python:
-    - If you run this file directly: python test_black_scholes.py
-      then __name__ == "__main__"
-    - If another file imports this: from tests import test_black_scholes
-      then __name__ == "tests.test_black_scholes"
     
     This pattern lets us write code that only runs when the file is executed directly.
     It's useful for including test code or examples in a module without them running
