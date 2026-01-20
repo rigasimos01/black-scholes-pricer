@@ -75,15 +75,15 @@ class HeatmapService:
                          heatmap_params: HeatmapParameters) -> HeatMapData:
         
         spot_prices = np.linspace(heatmap_params.min_spot,
-                                  heatmap_params.max_vol, heatmap_params.spot_steps)
+                                  heatmap_params.max_spot, heatmap_params.spot_steps)
         
         vols = np.linspace(heatmap_params.min_vol, heatmap_params.max_vol,
                            heatmap_params.vol_steps)
         
         # initialise 2d arrays to store results
         # number of vols x number of prices
-        call_prices = np.zeros(len(vols), len(spot_prices))        
-        put_prices = np.zeros(len(vols), len(spot_prices))
+        call_prices = np.zeros((len(vols), len(spot_prices)))      
+        put_prices = np.zeros((len(vols), len(spot_prices)))
 
         for i, vol in enumerate(vols):
             for j, spot in enumerate(spot_prices):
@@ -107,4 +107,14 @@ class HeatmapService:
                                put_prices=put_prices)
         
 
-    
+    def generate_outputs_for_database(self,
+                                      base_inputs: OptionInputs,
+                                      heatmap_params: HeatmapParameters
+                                      ) -> Tuple[List[CalculationOutput], List[CalculationOutput]]:
+        
+        """
+        same as generate_heatmap(), but formats data for saving in database
+        
+        """
+
+        
