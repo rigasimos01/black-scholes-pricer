@@ -11,7 +11,6 @@ import sqlite3
 from pathlib import Path
 from typing import List, Optional, Tuple
 from datetime import datetime
-
 # Import our data models
 from src.database.models import CalculationInput, CalculationOutput
 
@@ -59,7 +58,7 @@ class DatabaseManager:
         Create the database tables if they don't exist
         
         This method runs automatically when DatabaseManager is initialized.
-        The IF NOT EXISTS clause means it won't error if tables already exist.
+        NOT EXISTS clause means it won't crash if tables already exist.
         """
         # Get a database connection
         conn = self._get_connection()
@@ -155,10 +154,7 @@ class DatabaseManager:
                 inputs.dividend_yield
             ))
             # The ? are placeholders that get replaced by the values in the tuple
-            # This is called "parameterized queries" and prevents SQL injection attacks
-            # NEVER use f-strings or string concatenation with SQL - always use ?
             
-            # Get the ID of the row we just inserted
             # lastrowid gives us the auto-generated CalculationId
             calculation_id = cursor.lastrowid
             
@@ -185,7 +181,7 @@ class DatabaseManager:
             
         except Exception as e:
             # If anything went wrong, rollback (undo) all changes
-            # This prevents partial data - either everything saves or nothing does
+            #  prevents partial data - either everything saves or nothing does (atomicity)
             conn.rollback()
             # Re-raise the exception so the caller knows something went wrong
             raise e
