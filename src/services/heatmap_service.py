@@ -117,4 +117,69 @@ class HeatmapService:
         
         """
 
+        #first get resulting heatmap data
+        heatmap_data = self.generate_heatmap(base_inputs, heatmap_params)
+
+        calls = []
+        puts = []
+
+        for i, vol in enumerate(heatmap_data.vols):
+            for j, spot in enumerate(heatmap_data.spot_prices):
+
+                vol_shock = vol - base_inputs.volatility
+                spot_shock = spot - base_inputs.stock_price
+
+                call_price = heatmap_data.call_prices[i,j]
+                put_price = heatmap_data.put_prices[i,j]
+
+                call_output = CalculationOutput(volatility_shock=vol_shock,option_price= call_price,
+                                                stock_price_shock=spot_shock,
+                                                is_call = True
+                                                )
+
+                put_output = CalculationOutput(volatility_shock=vol_shock,option_price= call_price,
+                                                stock_price_shock=spot_shock,
+                                                is_call = True
+                                                )
+                
+                calls.append(call_output)
+                puts.append(put_output)
+
+        
+        return calls, puts
+    
+    def create_heatmap_params_from_inputs(self, base_inputs: OptionInputs,
+                                          spot_range_pct: float  = 0.2, vol_range_pct: float = 0.2,
+                                          steps: int = 10) -> HeatmapParameters:
+        
+        """
+            automatically create heatmap parameters (volatility min and max and steps as well as spot price
+            min and max and steps), based on the input price and volatility. we just define the range percentage 
+            for these two factors and the number of steps and the absllute value of the shocks will be computed by this method
+
+        """
+
+        min_spot = base_inputs.stock_price * (1 - spot_range_pct)
+        max_spot = base_inputs.stock_price * (1+ spot_range_pct)
+
+        min_vol = base_inputs.volatility * (1 - vol_range_pct)
+        max_vol = base_inputs.volatility * (1+ vol_range_pct)
+
+        #to ensure vol is positive, otherwise black scholes wont work
+        min_vol = max(min_vol, 0.005)
+
+        return HeatmapParameters(
+            min_spot=min_spot,
+            max_spot=max_spot,
+            min_vol= min_vol,
+            max_vol = max_vol,
+            spot_steps=steps,
+            vol_steps=steps
+        )
+    
+
+    
+
+
+
         
