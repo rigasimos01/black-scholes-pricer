@@ -106,7 +106,7 @@ class BlackScholesCalculator:
         S = inputs.stock_price  # curent stock price
         K = inputs.strike_price  # strike price
         T = inputs.time_to_expiry  # time to expiration (years)
-        sigma = inputs.volatility  # vol
+        vol = inputs.volatility  # vol
         r = inputs.risk_free_rate  # rf
         q = inputs.dividend_yield
         
@@ -114,11 +114,11 @@ class BlackScholesCalculator:
         # np.log() is the natural logarithm (ln)
         # np.sqrt() is the square root
         # The formula measures how far "in the money" the option is, adjusted for time and volatility
-        d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        d1 = (np.log(S / K) + (r - q + 0.5 * vol**2) * T) / (vol * np.sqrt(T))
         
         # Calculate d2 - the second key component
         # d2 is just d1 shifted by sigma*sqrt(T)
-        d2 = d1 - sigma * np.sqrt(T)
+        d2 = d1 - vol * np.sqrt(T)
         
         # S*norm.cdf(d1) = expected value of stock if option is exercised
         # K*np.exp(-r * T) * norm.cdf(d2) = present value of strike price, weighted by probability
@@ -148,11 +148,75 @@ class BlackScholesCalculator:
         - Vega: sensitivity to volatility changes
         - Rho: sensitivity to interest rate changes
         
-        We'll implement this in a later step.
-        
         Returns:
-            Dictionary containing delta, gamma, theta, vega, rho
+            Dict containing delta, gamma, theta, vega, rho
         """
+
+        S = inputs.stock_price
+        K = inputs.strike_price
+        vol = inputs.volatility
+        T = inputs.time_to_expiry
+        r = inputs.risk_free_rate
+        q = inputs.dividend_yield
+
+        
+        # The formula measures how far "in the money" the option is, adjusted for time and volatility
+        d1 = (np.log(S / K) + (r - q + 0.5 * vol**2) * T) / (vol * np.sqrt(T))
+        
+        # Calculate d2 - the second key component
+        # d2 is just d1 shifted by sigma*sqrt(T)
+        d2 = d1 - vol * np.sqrt(T)
+
+        #Call delta: e^(qT) * N(d1)
+        # Put delta = -e^(qT) * N(-d1)
+        call_delta = np.exp(-q*T)  * norm.cdf(d1)
+        put_delta = -np.exp(-q*T) * norm.cdf(-d1)
+
+        # Gamma is just the derivative of delta in terms of S
+        # since put_delta = call_delta - e^(-qT) their gammas are equivalent all else equal
+        gamma = np.exp(-q*T) * (norm.pdf(d1)) / (S*vol*np.sqrt(T))
+
+        # vega - sensitivity to volatility
+        # measures change in option price in terms of change in volatility
+        # we usually express it per 1% move, so i multiply by 0.01
+        vega = S * np.exp(-q*T) * norm.pdf(d1) * np.sqrt(T) * 0.01
+
+        # Theta - change in option price in terms of forward change in time 
+        # usually expressed per day so divide by 365
+        call_theta = (-(S* norm.pdf(d1) * vol * np.exp(-q*T) / (2* np.sqrt(T))) 
+                      - r * K * np.exp(-r*T) + norm.cdf(d2)
+                      + q*S* np.exp(-q*T) * norm.cdf(d1)) / 365
+        
+        put_theta = (-(S* norm.pdf(d1) * vol * np.exp(-q*T) / (2* np.sqrt(T))) 
+                      + r * K * np.exp(-r*T) + norm.cdf(-d2)
+                      - q*S* np.exp(-q*T) * norm.cdf(-d1)) / 365
+        
+
+        #rho - sensitivity to interest rates
+        # chang ein option price following a 1% change in interest rate
+        # we multiply by 0.01 to find that
+        call_rho = K * T * np.exp(-r*T) * norm.cdf(d2) * 0.01
+        put_rho = -K * T * np.exp(-r *T) * norm.cdf(-d2) * 0.01
+
+        return {
+            'call' : {
+                'delta' : round(call_delta, 4),
+                'gamma' : round(gamma, 4),
+                'theta' : round(call_theta, 4),
+                'vega' : round(vega, 4),
+                'rho' : round(call_rho,4)
+            } ,
+            'put' : {
+                'delta' : round(put_delta, 4),
+                'gamma' : round(gamma, 4),
+                'theta' : round(put_theta, 4),
+                'vega' : round(vega, 4),
+                'rho' : round(put_rho,4)
+            } 
+        }
+
+
+
         # NotImplementedError is a built-in exception type that signals
         # "this feature exists but isn't coded yet"
         raise NotImplementedError("Greeks calculation coming in future version")
