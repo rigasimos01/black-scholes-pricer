@@ -137,9 +137,9 @@ class HeatmapService:
                                                 is_call = True
                                                 )
 
-                put_output = CalculationOutput(volatility_shock=vol_shock,option_price= call_price,
+                put_output = CalculationOutput(volatility_shock=vol_shock,option_price= put_price,
                                                 stock_price_shock=spot_shock,
-                                                is_call = True
+                                                is_call = False
                                                 )
                 
                 calls.append(call_output)

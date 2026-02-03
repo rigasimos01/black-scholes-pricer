@@ -46,7 +46,7 @@ def show_history_page(db_manager: DatabaseManager):
 
     #display table
     #st.dataframe creates interactive table
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width='stretch', hide_index=True)
 
     #allow user to select calculation and view details
     st.markdown("---")
@@ -55,7 +55,7 @@ def show_history_page(db_manager: DatabaseManager):
 
     selected_id = st.selectbox("Select a calculation to view details: ",
                                options=calc_ids, 
-                               format = lambda x: f"Calculation #{x}")
+                               format_func = lambda x: f"Calculation #{x}")
     
     if selected_id:
         show_calculation_details(db_manager,selected_id)
@@ -83,14 +83,14 @@ def show_calculation_details(db_manager: DatabaseManager, calc_id: int):
     col1, col2, col3 = st.columns(3)
 
     with col1: 
-        st.metric("Stock Price" f"${calc_input.stock_price:.2f}")
-        st.metric("Strike Price" f"${calc_input.strike_price:.2f}")
+        st.metric("Stock Price",f"${calc_input.stock_price:.2f}")
+        st.metric("Strike Price", f"${calc_input.strike_price:.2f}")
     with col2:
-        st.metric("Volatility" f"${calc_input.volatility:.2f}")
-        st.metric("Time to expiry" f"${calc_input.time_to_expiry:.2f}")
+        st.metric("Volatility", f"${calc_input.volatility:.2f}")
+        st.metric("Time to expiry", f"${calc_input.time_to_expiry:.2f}")
     with col3:
-        st.metric("Interest rate" f"${calc_input.interest_rate:.2f}")
-        st.metric("Dividend yield" f"${calc_input.dividend_yield:.2f}")
+        st.metric("Interest rate" ,f"${calc_input.interest_rate:.2f}")
+        st.metric("Dividend yield", f"${calc_input.dividend_yield:.2f}")
 
     st.markdown("---")
     st.subheader("Outputs Summary")
